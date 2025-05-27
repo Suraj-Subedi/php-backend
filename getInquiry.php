@@ -24,9 +24,14 @@ try {
         die();
     }
 
+    $page = isset($_GET["page"]) ? (int)$_GET["page"] : 1;
+    $page_size = isset($_GET["page_size"]) ? (int)$_GET["page_size"] : 10;
+    $offset = ($page - 1) * $page_size;
 
 
-    $sql = "SELECT * FROM inquiries";
+
+
+    $sql = "SELECT * FROM inquiries ORDER BY created_at DESC LIMIT $page_size OFFSET $offset";
 
     $result = mysqli_query($con, $sql);
 
@@ -43,11 +48,25 @@ try {
 
     $inquiries = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
+    $sql = "SELECT COUNT(*) as total FROM inquiries";
+    $countResult = mysqli_query($con, $sql);
+    if (!$countResult) {
+        echo json_encode([
+            "success" => false,
+            "message" => "Failed to count inquiries."
+        ]);
+        die();
+    }
+    $countRow = mysqli_fetch_assoc($countResult);
+    $total = $countRow['total'];
+
 
     echo json_encode([
         "success" => true,
         "message" => "Inquiries fetched successfully.",
-        "data" => $inquiries
+        "data" => $inquiries,
+        "total" => $total,
+        "total_pages" => ceil($total / $page_size)
     ]);
 } catch (\Throwable $th) {
     echo json_encode([
